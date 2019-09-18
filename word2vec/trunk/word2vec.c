@@ -13,7 +13,7 @@
 //  limitations under the License.
 
 
-// word2vec -train ../../data/mini_corpus.txt -output ../../data/out.txt -cbow 0 -size 5 -window 10 -negative 0 -hs 1 -sample 0 -threads 1 -binary 0 -min_count 1
+// word2vec -train ../../data/5m_corpus.txt -output ../../data/out.txt -cbow 0 -size 5 -window 10 -negative 0 -hs 1 -sample 0 -threads 1 -binary 0 -min_count 1
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -26,7 +26,6 @@
 #define MAX_EXP 6
 #define MAX_SENTENCE_LENGTH 5000
 #define MAX_CODE_LENGTH 40
-#define NUM_NUCLEOTIDES 4
 
 const int vocab_hash_size = 30000000;  // Maximum 30 * 0.7 = 21M words in the vocabulary
 
@@ -53,7 +52,6 @@ int hs = 1, negative = 0;
 const int table_size = 1e8;
 int *table;
 int kmer_size = 3;
-int read_length = 100;
 size_t size_of_kmer;
 
 
@@ -131,7 +129,7 @@ int ReadKmersIndex(FILE *fin, long long (*sentences)[MAX_SENTENCE_LENGTH + 1], l
     char * line = NULL;
     size_t len = 0;
     ssize_t chars_read;
-    char tmp_kmer[kmer_size];
+    char tmp_kmer[kmer_size + 1];
     memset(tmp_kmer, '\0', sizeof(tmp_kmer));
     chars_read = getline(&line, &len, fin);
     int kmer_ind;
@@ -141,6 +139,7 @@ int ReadKmersIndex(FILE *fin, long long (*sentences)[MAX_SENTENCE_LENGTH + 1], l
         //printf("line = %s\nnum_kmers = %ld\n", line, (chars_read - kmer_size) / kmer_size);
         for (int j = i; j < chars_read - kmer_size; j += kmer_size) {
             memcpy(tmp_kmer, line + j, size_of_kmer);
+            tmp_kmer[kmer_size] = '\0';
             kmer_ind = SearchVocab(tmp_kmer);
             if (kmer_ind == -1) continue;
             kmer_count++;
@@ -306,6 +305,7 @@ void AddKmerToVocab(char *tmp_kmer) {
     long long a, search_result;
     search_result = SearchVocab(tmp_kmer);
     if (search_result == -1) {
+        printf("New word found: %s\n", tmp_kmer);
         a = AddWordToVocab(tmp_kmer);
         vocab[a].cn = 1;
     } else vocab[search_result].cn++;
@@ -314,16 +314,17 @@ void AddKmerToVocab(char *tmp_kmer) {
 
 
 // Turns a read into kmers and adds it to the vocab
-void ProcessReadForVocab(char *read) {
-    char tmp_kmer[kmer_size];
+void ProcessReadForVocab(char *read, ssize_t chars_read) {
+    char tmp_kmer[kmer_size + 1];
     memset(tmp_kmer, '\0', sizeof(tmp_kmer));
-    for (int i = 0; i < read_length - kmer_size + 1; i++) {
+    for (int i = 0; i < chars_read - kmer_size; i++) {
         memcpy(tmp_kmer, read + i, size_of_kmer);
         train_words++;
         if ((debug_mode > 1) && (train_words % 100000 == 0)) {
             printf("%lldK%c", train_words / 1000, 13);
             fflush(stdout);
         }
+        tmp_kmer[kmer_size] = '\0';
         AddKmerToVocab(tmp_kmer);
     }
     // Add the \n </s>
@@ -346,7 +347,8 @@ void LearnVocabFromTrainFile() {
     ssize_t chars_read;
     //Include the \n for </s>
     while ((chars_read = getline(&line, &len, fin)) != -1) {
-        ProcessReadForVocab(line);
+        // if (chars_read != 101) printf("Read %ld chars for %s", chars_read, line);
+        ProcessReadForVocab(line, chars_read);
     }
 
     /*
@@ -887,7 +889,6 @@ int main(int argc, char **argv) {
   if ((i = ArgPos((char *)"-min-count", argc, argv)) > 0) min_count = atoi(argv[i + 1]);
   if ((i = ArgPos((char *)"-classes", argc, argv)) > 0) classes = atoi(argv[i + 1]);
   if ((i = ArgPos((char *)"-kmer", argc, argv)) > 0) kmer_size = atoi(argv[i + 1]);
-  if ((i = ArgPos((char *)"-read-length", argc, argv)) > 0) read_length = atoi(argv[i + 1]);
   size_of_kmer = sizeof(char) * kmer_size;
   vocab = (struct vocab_word *)calloc(vocab_max_size, sizeof(struct vocab_word));
   vocab_hash = (int *)calloc(vocab_hash_size, sizeof(int));
