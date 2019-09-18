@@ -305,7 +305,7 @@ void AddKmerToVocab(char *tmp_kmer) {
     long long a, search_result;
     search_result = SearchVocab(tmp_kmer);
     if (search_result == -1) {
-        printf("New word found: %s\n", tmp_kmer);
+        // printf("New word found: %s\n", tmp_kmer);
         a = AddWordToVocab(tmp_kmer);
         vocab[a].cn = 1;
     } else vocab[search_result].cn++;
