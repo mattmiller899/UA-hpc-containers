@@ -21,7 +21,7 @@
 #include <math.h>
 #include <pthread.h>
 
-#define MAX_STRING 100
+#define MAX_STRING 200
 #define EXP_TABLE_SIZE 1000
 #define MAX_EXP 6
 #define MAX_SENTENCE_LENGTH 5000
@@ -123,6 +123,7 @@ int ReadKmersIndex(FILE *fin, long long (*sentences)[MAX_SENTENCE_LENGTH + 1], l
     }
     // Add another word count for the \n
     kmer_count++;
+    free(line);
     return kmer_count;
 }
 
@@ -318,6 +319,7 @@ void LearnVocabFromTrainFile() {
     while ((chars_read = getline(&line, &len, fin)) != -1) {
         // if (chars_read != 101) printf("Read %ld chars for %s", chars_read, line);
         ProcessReadForVocab(line, chars_read);
+
     }
 
     /*
@@ -350,6 +352,7 @@ void LearnVocabFromTrainFile() {
      */
     SortVocab();
     file_size = ftell(fin);
+    if (line) free(line);
     fclose(fin);
     if (debug_mode > 0) {
         printf("Vocab size: %lld\n", vocab_size);
