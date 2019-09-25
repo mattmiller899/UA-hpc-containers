@@ -440,7 +440,7 @@ void DoTraining() {
     real *neu1 = (real *)calloc(layer1_size, sizeof(real));
     real *neu1e = (real *)calloc(layer1_size, sizeof(real));
     FILE *fi = fopen(train_file, "rb");
-    fseek(fi, file_size / (long long)num_threads * (long long)id, SEEK_SET);
+    //fseek(fi, file_size / (long long)num_threads * (long long)id, SEEK_SET);
     while (1) {
         if (word_count - last_word_count > 10000) {
             word_count_actual += word_count - last_word_count;
@@ -460,7 +460,8 @@ void DoTraining() {
             word_count += ReadKmersIndex(fi, sentences, sentence_lengths, &next_random);
         }
         if (feof(fi)) break;
-        if (word_count > train_words / num_threads) break;
+        //if (word_count > train_words / num_threads) break;
+        if (word_count > train_words) break;
         // Use each ORF
         for (int i = 0; i < kmer_size; i++) {
             sentence_position = 0;
@@ -615,7 +616,7 @@ void DoTraining() {
 void TrainModel() {
     long a, b, c, d;
     FILE *fo, *fob;
-    pthread_t *pt = (pthread_t *)malloc(num_threads * sizeof(pthread_t));
+    //pthread_t *pt = (pthread_t *)malloc(num_threads * sizeof(pthread_t));
     printf("Starting training using file %s\n", train_file);
     starting_alpha = alpha;
     if (read_vocab_file[0] != 0) ReadVocab(); else LearnVocabFromTrainFile();
