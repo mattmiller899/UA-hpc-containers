@@ -367,96 +367,33 @@ void LearnVocabFromTrainFile() {
 }
 
 
-void OldLearnVocabFromTrainFile() {
-    char word[MAX_STRING];
-    FILE *fin;
-    long long a, i;
-    for (a = 0; a < vocab_hash_size; a++) vocab_hash[a] = -1;
-    fin = fopen(train_file, "rb");
-    if (fin == NULL) {
-        printf("ERROR: training data file not found!\n");
-        exit(1);
-    }
-    vocab_size = 0;
-    AddWordToVocab((char *)"</s>");
-    while (1) {
-        ReadWord(word, fin);
-        if (feof(fin)) break;
-        train_words++;
-        if ((debug_mode > 1) && (train_words % 100000 == 0)) {
-            printf("%lldK%c", train_words / 1000, 13);
-            fflush(stdout);
-        }
-        i = SearchVocab(word);
-        if (i == -1) {
-            a = AddWordToVocab(word);
-            vocab[a].cn = 1;
-        } else vocab[i].cn++;
-        if (vocab_size > vocab_hash_size * 0.7) ReduceVocab();
-    }
-    SortVocab();
-    if (debug_mode > 0) {
-        printf("Vocab size: %lld\n", vocab_size);
-        printf("Words in train file: %lld\n", train_words);
-    }
-    file_size = ftell(fin);
-    fclose(fin);
-}
-
-/*
-void CreateKmerVocab() {
-    char *a[kmer_size];
-    char word[kmer_size];
-    long long b;
-    for (b = 0; b < vocab_hash_size; b++) vocab_hash[b] = -1;
-    FILE *fin;
-    fin = fopen(train_file, "rb");
-    fseek(fin, 0, SEEK_END)
-    file_size = ftell(fin);
-    fclose(fin);
-    for(int i = 0; i < kmer_size; i++) {
-        a[i] = "ACTG";
-    }
-    unsigned int *indices = calloc(kmer_size, sizeof(int));
-    unsigned int changed;
-    do {
-        unsigned int finished = 0;
-        unsigned int i;
-        changed = 0;
-        // Print the current tuple //
-        for (i = 0; i < kmer_size; i++) {
-            word[i] = a[i][indices[i]]);
-        }
-        b = AddWordToVocab(word)
-        vocab[b].cn = 1;
-        // Loop over the arrays in reverse order //
-        for (i = kmer_size - 1; !changed && !finished; i--) {
-            // Increment //
-            indices[i]++;
-            if (a[i][indices[i]]) {
-                // We moved to the next character //
-                changed = 1;
-            }
-            else {
-                // End of string, so roll over //
-                indices[i] = 0;
-            }
-            finished = i == 0;
-        }
-    } while (changed);
-    free(indices);
-    SortVocab();
-    if (debug_mode > 0) {
-        printf("Vocab size: %lld\n", vocab_size);
-    }
-}
- */
-
 void SaveVocab() {
   long long i;
   FILE *fo = fopen(save_vocab_file, "wb");
   for (i = 0; i < vocab_size; i++) fprintf(fo, "%s %lld\n", vocab[i].word, vocab[i].cn);
   fclose(fo);
+}
+
+void ReadWord(char *word, FILE *fin) {
+  int a = 0, ch;
+  while (!feof(fin)) {
+    ch = fgetc(fin);
+    if (ch == 13) continue;
+    if ((ch == ' ') || (ch == '\t') || (ch == '\n')) {
+      if (a > 0) {
+        if (ch == '\n') ungetc(ch, fin);
+        break;
+      }
+      if (ch == '\n') {
+        strcpy(word, (char *)"</s>");
+        return;
+      } else continue;
+    }
+    word[a] = ch;
+    a++;
+    if (a >= MAX_STRING - 1) a--;   // Truncate too long words
+  }
+  word[a] = 0;
 }
 
 void ReadVocab() {

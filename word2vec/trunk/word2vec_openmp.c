@@ -58,6 +58,28 @@ int *table;
 int kmer_size = 3;
 size_t size_of_kmer;
 
+void ReadWord(char *word, FILE *fin) {
+  int a = 0, ch;
+  while (!feof(fin)) {
+    ch = fgetc(fin);
+    if (ch == 13) continue;
+    if ((ch == ' ') || (ch == '\t') || (ch == '\n')) {
+      if (a > 0) {
+        if (ch == '\n') ungetc(ch, fin);
+        break;
+      }
+      if (ch == '\n') {
+        strcpy(word, (char *)"</s>");
+        return;
+      } else continue;
+    }
+    word[a] = ch;
+    a++;
+    if (a >= MAX_STRING - 1) a--;   // Truncate too long words
+  }
+  word[a] = 0;
+}
+
 
 void InitUnigramTable() {
     int a, i;
@@ -431,7 +453,7 @@ void DoTraining() {
     long long a, b, d, word, last_word, sentence_length = 0, sentence_position = 0;
     long long word_count = 0, last_word_count = 0, sen[MAX_SENTENCE_LENGTH + 1];
     long long l1, l2, c, target, label;
-    unsigned long long next_random = (long long)id;
+    unsigned long long next_random = (long long)1;
     long long sentences[kmer_size][MAX_SENTENCE_LENGTH + 1];
     long long sentence_lengths[kmer_size];
     for (int i = 0; i < kmer_size; i++) sentence_lengths[i] = 0;
@@ -481,7 +503,7 @@ void DoTraining() {
             */
             #pragma omp parallel for
             for(sentence_position = 0; sentence_position < sentence_length; sentence_position++) {
-                word = sen[sentence_position];
+		word = sen[sentence_position];
                 //printf("word_id = %lld\tword = %s\n", word, vocab[word].word);
                 if (word == -1) continue;
                 for (c = 0; c < layer1_size; c++) neu1[c] = 0;
@@ -604,6 +626,7 @@ void DoTraining() {
                 }
             }
         }
+	sentence_length = 0;
     }
     fclose(fi);
     free(neu1);
