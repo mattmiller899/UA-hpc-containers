@@ -55,6 +55,11 @@ int kmer_size = 3;
 size_t size_of_kmer;
 
 
+void ReadWord(char *word, FILE *fin) {
+    int dum = 0;
+}
+
+
 void InitUnigramTable() {
   int a, i;
   long long train_words_pow = 0;
@@ -533,6 +538,8 @@ void *TrainModelThread(void *id) {
                        word_count_actual / (real)(train_words + 1) * 100,
                        word_count_actual / ((real)(now - start + 1) / (real)CLOCKS_PER_SEC * 1000));
                 fflush(stdout);
+                float time_elapsed = (real)(now - start + 1) / ((real)CLOCKS_PER_SEC);
+                printf("%f sec elapsed\n", time_elapsed);
             }
             alpha = starting_alpha * (1 - word_count_actual / (real)(train_words + 1));
             if (alpha < starting_alpha * 0.0001) alpha = starting_alpha * 0.0001;
